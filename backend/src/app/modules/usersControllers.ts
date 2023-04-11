@@ -1,110 +1,152 @@
 import { Request, Response } from "express";
 import connection from "../../models/connections";
-import { request } from "http";
 import ResComparation from "../../configs/types";
 
-connection.connect((err: Error, res: Response) => {
-    if(err){
-        console.log('conexão mal sucedida pois ' + err.stack)
-        return;
-    }
-
-    console.log("conexão com banco de dados bem sucedida")
-})
+connection.select('*').from('userdates').then((users) => {
+    console.log(users);
+}).catch((err) => {
+    console.log(err);
+});
 
 class usersController {
-    index(req: Request, res: Response){
-        connection.query("SELECT * FROM userdates", (err: Error, results: ResComparation[]) => {
-            if (err) {
-                throw err;
-              }
-        
+    
+    public async index(req: Request, res: Response) {
+        try {
+            const users = await connection.select('*').from('userdates');
+            return res.json(users);
 
-              return res.json(results);
-            });
+        } catch (error) {
+            console.error(error);
+            return res.status(500).send('Erro ao buscar usuários');
+
+        }
     }
 
-    show(req: Request, res: Response){
-        const { id } = req.params;
-        connection.query('SELECT * FROM userdates WHERE id = ?', [id] , (err, results) => {
-            if (err) {
-              throw err;
-            }
-          
-            return res.json(results);
-          });
+    public async show(req: Request, res: Response) {
+        try {
+            const { id } = req.params;
+            const users = await connection.select('*').from('userdates').where('id', id)
+
+            return res.json(users)
+        } catch (error) {
+            console.log(error)
+            return res.status(500).send('erro ao buscar usario')
+        }
     }
 
-    updateAll(req: Request, res: Response) {
-        const { id } = req.params;
-        const { name, email, password } = req.body;
-        connection.query("UPDATE userdates SET name = ? ,email = ?, password = ? WHERE id = ?", [name, email, password, id], (err, results) => {
-            if (err) {
-                throw err;
-            }
 
-            return res.json(results);
-        })
+    public async updateAll(req: Request, res: Response) {
+        try {
+            const { id } = req.params;
+            const { name, email, password } = req.body;
+            await connection('userdates')
+              .where('id', id)
+              .update({
+                name,
+                email,
+                password,
+              }, [name, email, password]);
+            res.sendStatus(200); 
+
+          } catch (error) {
+            console.error(error);
+            res.status(500).send('Erro ao atualizar usuário');
+          }
+    };
+    
+    public async updateEmail(req: Request, res: Response) {
+        try {
+            const { id } = req.params;
+            const { email } = req.body;
+            connection('userdates')
+                .where('id', id)
+                .update({
+                    email,
+                }, [email])
+            res.sendStatus(200).send('Erro ao atualizar email'); 
+
+        } catch (error){
+            console.log(error)
+            res.status(500).send('Erro ao atualizar email');
+        }
     };
 
-    updateEmail(req: Request, res: Response) {
-        const { id } = req.params;
-        const { email } = req.body;
-        connection.query("UPDATE userdates SET email = ? WHERE id = ?", [email, id], (err, results) => {
-            if (err) {
-                throw err;
-            }
 
-            return res.json(results);
-        })
-    };
+    public async updateName(req: Request, res: Response) {
+        try {
+            const { id } = req.params;
+            const { name } = req.body;
 
-    updateName(req: Request, res: Response) {
-        const { id } = req.params;
-        const { name } = req.body;
-        connection.query("UPDATE userdates SET name = ? WHERE id = ?", [name, id], (err, results) => {
-            if (err) {
-                throw err;
-            }
+            connection('userdates')
+                .where('id', id)
+                .update({
+                    name,
+                }, [name])
 
-            return res.json(results);
-        })
-    };
+            return res.status(200).send('nome atualizado com sucesso')
 
-    updatePass(req: Request, res: Response) {
-        const { id } = req.params;
-        const { password } = req.body;
-        connection.query("UPDATE userdates SET password = ? WHERE id = ?", [password, id], (err, results) => {
-            if (err) {
-                throw err;
-            }
+        } catch (error) {
+            return res.status(500).send('erro ao atualizar nome')
 
-            return res.json(results);
-        })
-    };
-
-    create(req: Request, res: Response) {
-        const { name, email, password } = req.body;
-
-        connection.query("INSERT INTO userdates(name, email, password) VALUES (?, ?, ?)", [name, email, password], (err, results) => {
-            if (err) {
-                throw err
-            }
-
-            return res.json(results)
-        })
+        }
     }
 
-    destroy(req: Request, res: Response) {
-        const { id } = req.params;
-        connection.query("DELETE FROM userdates WHERE id = ?", [id], (err, results) => {
-            if(err) {
-                throw err
-            }
+    public async updatePass(req: Request, res: Response) {
+        try {
+            const { id } = req.params;
+            const { password } = req.body;
 
-            return res.json(results)
-        })
+            connection('userdates')
+                .where('id', id)
+                .update({
+                    password,
+                }, [password])
+
+            return res.status(200).send('senha atualizada com sucesso')
+        } catch (error) {
+            console.log(error)
+            return res.status(500).send('erro ao atualizar senha')
+        }
     }
+
+    public async create(req: Request, res: Response) {
+        try {
+            const { name, email, password } = req.body;
+
+            connection('userdates')
+                .insert({
+                    name,
+                    email,
+                    password,
+                })  .then(() => {
+                    res.send('Usuário criado com sucesso');
+                  })
+                 
+
+        } catch(error) {
+                console.error(error);
+                res.status(500).send('Erro ao criar usuário');
+
+        }
+    }
+
+    public async destroy(req: Request, res: Response) {
+        try {
+            const { id } = req.params;
+
+            connection('userdates')
+                .where('id', id)
+                .delete();
+
+                return res.status(200).send('usario deletado com sucesso')
+
+        } catch(error) {
+            console.log(error)
+            res.status(500).send('falha ao deletar o usario')
+            
+        }
+    }
+
 }
 
 export default new usersController;
